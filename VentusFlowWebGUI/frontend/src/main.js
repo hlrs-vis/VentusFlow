@@ -220,28 +220,24 @@ function handleDragEvent(evt) {
   const deltaX = evt.coordinate[0] - this.coordinate_[0];
   const deltaY = evt.coordinate[1] - this.coordinate_[1];
 
-
-  const geometry = this.feature_.getGeometry();
-  geometry.translate(deltaX, deltaY);
-  const currType = this.feature_.get("type");
-
   const id = this.feature_.getId()
-
-  const relatedFeature = currType === "circle"
-  ? wakeSource.getFeatureById(id)
-  : currType === "wake"
-    ? sphereRadiusSource.getFeatureById(id):
-      currType !== "turbine" ? pfeilSource.getFeatures()[0]:
-      null;
-
-  if (relatedFeature){
-    const relatedGeometry = relatedFeature.getGeometry();
-    relatedGeometry.translate(deltaX, deltaY);
+  
+  if(id){
+    const turbine = turbineSource.getFeatureById(id);
+    const geometry = turbine.getGeometry();
+    geometry.translate(deltaX,deltaY);
+  }else{
+    const geometry = this.feature_.getGeometry();
+    geometry.translate(deltaX, deltaY);
+    const arrow =  pfeilSource.getFeatures()[0];
+    const arrowGeometry = arrow.getGeometry();
+    arrowGeometry.translate(deltaX, deltaY);
   }
 
   this.coordinate_[0] = evt.coordinate[0];
   this.coordinate_[1] = evt.coordinate[1];
-
+  updateWakeLayer();
+  updateSphereRadiusLayer();
 }
 
 /**
