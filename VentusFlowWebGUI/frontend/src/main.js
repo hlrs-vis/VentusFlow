@@ -443,7 +443,12 @@ function setActiveLayer(selectionType) {
     simAreaLayer.setZIndex(20); // Simulationsgebiet nach oben
     console.log('Simulationsgebiet-Layer ist nun aktiv und wurde nach oben verschoben');
     resetDeleteButton();
-  } else {
+  } else if (selectionType == "Delete"){
+    activeLayer = 'deleting';;
+    clearShapesButton.disabled = false;
+    isDeleting = true;
+  }
+   else {
     activeLayer = 'none';
     console.log('Kein Layer ist aktiv');
     clearShapesButton.disabled = false;
