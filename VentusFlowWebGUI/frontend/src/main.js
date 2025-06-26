@@ -24,7 +24,7 @@ import './styles/style.css';
 // - Style: Basisklasse für die Definition von Stilregeln.
 // - Icon: Zeigt Bild-Symbole (z. B. für Icons) an.
 // - Stroke, RegularShape, Fill: Für Linien, geometrische Formen (z. B. Pfeilköpfe) und Füllungen.
-import { Style, Icon, Stroke, RegularShape, Fill, Text } from 'ol/style';
+import { Style, Icon, Stroke, RegularShape, Fill, Text, Circle } from 'ol/style.js';
 // Point: Zum Erzeugen von Punkt-Geometrien, z. B. für den Pfeilkopf.
 import Point from 'ol/geom/Point';
 import PointerInteraction from 'ol/interaction/Pointer.js';
@@ -89,6 +89,74 @@ const rectangleStyle = function(feature) {
   ];
 };
 
+const selectedStyle = function(feature) {
+  // For text positioning, we'll use the center of the rectangle
+  const geometry = feature.getGeometry();
+  const extent = geometry.getExtent();
+  const centerX = (extent[0] + extent[2]) / 2;
+  const centerY = (extent[1] + extent[3]) / 2;
+  
+  return [
+    new Style({
+      image: new RegularShape({
+        fill: new Fill({ color: 'yellow' }),
+        points: 5,
+        radius: 80,
+        radius2: 40,
+        angle: 0,
+      })
+    }),
+  ];
+};
+
+const selectedStyleSimArea = function(feature) {
+  // For text positioning, we'll use the center of the rectangle
+  const geometry = feature.getGeometry();
+  const extent = geometry.getExtent();
+  const centerX = (extent[0] + extent[2]) / 2;
+  const centerY = (extent[1] + extent[3]) / 2;
+  
+  return [
+    new Style({
+      image: new RegularShape({
+        fill: new Fill({ color: 'yellow' }),
+        points: 5,
+        radius: 100,
+        radius2: 40,
+        angle: 0,
+      }),
+      geometry: new Point([centerX, centerY])  
+    }),
+    new Style({
+      stroke: new Stroke({
+        color: 'blue',  // Rahmenfarbe
+        width: 2        // Rahmenbreite
+      }),
+      fill: new Fill({
+        color: 'rgba(0, 0, 255, 0.1)'  // Füllfarbe mit Transparenz
+      })
+    }),
+    // Text style for label
+    new Style({
+      text: new Text({
+        text: 'Simulation Area',
+        font: '16px Arial',
+        fill: new Fill({
+          color: 'rgba(0, 0, 255, 0.8)'
+        }),
+        stroke: new Stroke({
+          color: 'white',
+          width: 3
+        }),
+        offsetY: 0,
+        geometry: new Point([centerX, centerY])
+      })
+    })
+  ];
+};
+
+
+
 // ======================================================================
 // Karten- und Layer-Klassen
 // 
@@ -129,6 +197,7 @@ import Translate from 'ol/interaction/Translate';
 import Collection from 'ol/Collection';
 import { rotate } from 'ol/coordinate';
 import { parse } from 'ol/expr/expression';
+import CircleStyle from 'ol/style/Circle';
 
 // ======================================================================
 // Globale Variablen
@@ -140,6 +209,7 @@ let translateInteraction = null;  // Interaktion zum Verschieben des Shapes
 let activeLayer = 'none';         // Aktuell aktiver Layer ('points', 'simarea', 'none')
 let editModeActive = false;       // Toggle-Status für Edit-Modus
 let isDeleting = false;           // Toggle deletion
+let selected = null;
 
 // Globale Variablen für die Zeichenebenen
 let turbineSource = null;         // Vektorquelle für Turbinen (Punkte)
@@ -199,7 +269,6 @@ class Drag extends PointerInteraction {
 function handleDownEvent(evt) {
   
   const map = evt.map;
-  
 
   const feature = map.forEachFeatureAtPixel(evt.pixel, function (feature) {
     return feature;
@@ -221,7 +290,8 @@ function handleDragEvent(evt) {
   const deltaY = evt.coordinate[1] - this.coordinate_[1];
 
   const id = this.feature_.getId()
-  
+  updateSelected(this.feature_);
+
   if(id){
     const turbine = turbineSource.getFeatureById(id);
     const geometry = turbine.getGeometry();
@@ -238,6 +308,36 @@ function handleDragEvent(evt) {
   this.coordinate_[1] = evt.coordinate[1];
   updateWakeLayer();
   updateSphereRadiusLayer();
+}
+
+function updateSelected(currFeature){
+  const id = currFeature.getId()
+  
+  if(selected && selected != "simArea"){
+    const prevTurbine = turbineSource.getFeatureById(selected);
+    prevTurbine.setStyle([]);
+    const panel = document.getElementById("TurbinenPanel");
+    panel.classList.remove('selected');
+  }else if(selected == "simArea"){
+    const simAreaFeature = simAreaSource.getFeatures()[0];
+    simAreaFeature.setStyle(rectangleStyle);
+    const panel = document.getElementById("PanelRight");
+    panel.classList.remove('selected');
+  }
+
+  // Update selected with star, and remove star from previously selected
+  if(id){
+    const turbine = turbineSource.getFeatureById(id);
+    turbine.setStyle(selectedStyle);
+    const panel = document.getElementById("TurbinenPanel");
+    panel.classList.add('selected');
+    selected = id;
+  }else{
+    currFeature.setStyle(selectedStyleSimArea);
+    const panel = document.getElementById("PanelRight");
+    panel.classList.add('selected');
+    selected = "simArea"
+  }
 }
 
 /**

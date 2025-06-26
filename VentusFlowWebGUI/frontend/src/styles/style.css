@@ -104,6 +104,31 @@ html, body {
   cursor: not-allowed;
 }
 
+#TurbinenPanel.selected{
+  background-color: #45a049;
+}
+
+#PanelRight.selected{
+  background-color: #45a049;
+}
+
+#TurbinenPanel .confirm-button {
+  display: none;
+  margin: 20px auto;  
+}
+
+#TurbinenPanel.selected .confirm-button {
+  display: block;
+}
+
+#PanelRight .confirm-button {
+  display: none;
+  margin: 20px auto;  
+}
+
+#PanelRight.selected .confirm-button {
+  display: block;
+}
 
 #rootFolder, #userInput, #hostInput, #remoteDirInput {
   width: 10%;
