@@ -704,6 +704,26 @@ document.getElementById('turbineTypeDropdown').addEventListener('change', () => 
   }
 });
 
+
+const confirmButton = document.getElementById("confirmButton")
+// panel.getElementsByClassName('confirm-button');
+
+confirmButton.addEventListener('click', function () {
+  const feature = turbineSource.getFeatureById(selected);
+  console.log("feature: ",feature);
+
+  const updatedParam = {
+    turbineType: document.getElementById('turbineTypeDropdown').value,
+    hubHeight: parseFloat(document.getElementById('hubHeightDropdown').value),
+    rotorRadius: parseFloat(document.getElementById('rotorRadius').textContent),
+    tipSpeedRatio: parseFloat(document.getElementById('tipSpeedRatio').textContent),
+    sphereRadius: parseFloat(document.getElementById('sphereRadius').value)
+  };
+
+  feature.setProperties(updatedParam); 
+});
+
+
 // Initialisiere Hubhöhen-Dropdown beim Laden
 function initialisiereHubHeightDropdown() {
   const turbineType = document.getElementById('turbineTypeDropdown').value;

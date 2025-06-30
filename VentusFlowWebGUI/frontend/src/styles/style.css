@@ -111,18 +111,17 @@ html, body {
 #PanelRight.selected{
   background-color: #45a049;
 }
-
-#TurbinenPanel .confirm-button {
-  display: none;
-  margin: 20px auto;  
+#TurbinenPanel .t-confirm-button {
+  cursor: not-allowed;
+  margin: 20px auto;
 }
 
-#TurbinenPanel.selected .confirm-button {
+#TurbinenPanel.selected .t-confirm-button {
   display: block;
 }
 
 #PanelRight .confirm-button {
-  display: none;
+  cursor: not-allowed;
   margin: 20px auto;  
 }
 
