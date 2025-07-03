@@ -1237,6 +1237,8 @@ function erstellePfeilFeature(winkel, center, laenge, tiefe) {
 }
 
 
+var arrowLayer = null;
+
 function aktualisierePfeil() {
   if (currentShape && squareAngleRadian !== null) {
     const center = currentShape.getGeometry().getInteriorPoint().getCoordinates();
@@ -1263,8 +1265,6 @@ function aktualisierePfeil() {
   }
 }
 
-
-let arrowLayer = null;
 
 // ======================================================================
 // Wake-Rectangle-Funktionen
