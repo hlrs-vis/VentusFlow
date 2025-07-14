@@ -198,6 +198,7 @@ import Collection from 'ol/Collection';
 import { rotate } from 'ol/coordinate';
 import { parse } from 'ol/expr/expression';
 import CircleStyle from 'ol/style/Circle';
+import FeatureFormat from 'ol/format/Feature';
 
 // ======================================================================
 // Globale Variablen
@@ -313,6 +314,7 @@ function handleDragEvent(evt) {
 function updateSelected(currFeature){
   const id = currFeature.getId()
   
+  // Remove star from previously selected
   if(selected && selected != "simArea"){
     const prevTurbine = turbineSource.getFeatureById(selected);
     prevTurbine.setStyle([]);
@@ -554,22 +556,6 @@ function setActiveLayer(selectionType) {
     clearShapesButton.disabled = false;
   }
   
-  // Aktualisiere auch die Select-Interaktion, falls vorhanden und Edit-Modus aktiv
-  if (editModeActive) {
-    if (selectInteraction) {
-      // Selektierte Features zurücksetzen
-      selectInteraction.getFeatures().clear();
-      map.removeInteraction(selectInteraction);
-    }
-    
-    // Nur neu aktivieren, wenn ein aktiver Layer existiert
-    if (activeLayer !== 'none') {
-      aktiviereSelectInteraktion();
-    } else {
-      selectInteraction = null;
-    }
-  }
-  
   // Translate-Interaktion zurücksetzen
   if (translateInteraction) {
     map.removeInteraction(translateInteraction);
@@ -593,29 +579,29 @@ function einrichtenToolbar() {
   const formenDropdown = document.getElementById('shapesDropdown');
   const clearShapesButton = document.getElementById('clearShapesButton');
   const windSlider = document.getElementById('windDirectionSlider');
-  const selectShapesButton = document.getElementById('selectShapesButton');
+  // const selectShapesButton = document.getElementById('selectShapesButton');
   
   einrichtenFormenDropdown(formenDropdown);
-  einrichtenSelectInteraktion(selectShapesButton);
+  // einrichtenSelectInteraktion(selectShapesButton);
   einrichtenWindSlider(windSlider);
   deleteShape(clearShapesButton,document.getElementById('map'));
   einrichtenLoeschenButton(clearShapesButton);
   
   // Neue Events für Breite und Tiefe: Bei Änderung wird das Shape entsprechend skaliert
-  document.getElementById('widthInput').addEventListener('change', () => {
-    if (!currentShape) return;
-    const newWidth = parseFloat(document.getElementById('widthInput').value);
-    const dimensionen = ermittleDimensionen(currentShape.getGeometry(), squareAngleRadian);
-    const factor = newWidth / dimensionen.width;
-    skaliereBreite(factor);
-  });
-  document.getElementById('depthInput').addEventListener('change', () => {
-    if (!currentShape) return;
-    const newDepth = parseFloat(document.getElementById('depthInput').value);
-    const dimensionen = ermittleDimensionen(currentShape.getGeometry(), squareAngleRadian);
-    const factor = newDepth / dimensionen.depth;
-    skaliereTiefe(factor);
-  });
+  // document.getElementById('widthInput').addEventListener('change', () => {
+  //   if (!currentShape) return;
+  //   const newWidth = parseFloat(document.getElementById('widthInput').value);
+  //   const dimensionen = ermittleDimensionen(currentShape.getGeometry(), squareAngleRadian);
+  //   const factor = newWidth / dimensionen.width;
+  //   skaliereBreite(factor);
+  // });
+  // document.getElementById('depthInput').addEventListener('change', () => {
+  //   if (!currentShape) return;
+  //   const newDepth = parseFloat(document.getElementById('depthInput').value);
+  //   const dimensionen = ermittleDimensionen(currentShape.getGeometry(), squareAngleRadian);
+  //   const factor = newDepth / dimensionen.depth;
+  //   skaliereTiefe(factor);
+  // });
 }
 einrichtenToolbar();
 
@@ -705,22 +691,23 @@ document.getElementById('turbineTypeDropdown').addEventListener('change', () => 
 });
 
 
-const confirmButton = document.getElementById("confirmButton")
-// panel.getElementsByClassName('confirm-button');
+const confirmButton = document.getElementById("panelConfirmButton")
 
 confirmButton.addEventListener('click', function () {
   const feature = turbineSource.getFeatureById(selected);
-  console.log("feature: ",feature);
 
   const updatedParam = {
     turbineType: document.getElementById('turbineTypeDropdown').value,
     hubHeight: parseFloat(document.getElementById('hubHeightDropdown').value),
     rotorRadius: parseFloat(document.getElementById('rotorRadius').textContent),
     tipSpeedRatio: parseFloat(document.getElementById('tipSpeedRatio').textContent),
-    sphereRadius: parseFloat(document.getElementById('sphereRadius').value)
+    sphereRadius: parseFloat(document.getElementById('sphereRadius').value),
+    wakeDepth: parseFloat(document.getElementById('wakeDepth').value),
   };
 
+
   feature.setProperties(updatedParam); 
+  updateWakeLayer();
 });
 
 
@@ -741,13 +728,13 @@ function initialisiereHubHeightDropdown() {
 initialisiereHubHeightDropdown();
 
 // Wake-Regionen
-document.getElementById('wakeDepth').addEventListener('change', () => {
-  updateWakeLayer(); // Aktualisiert die Wake-Regionen
-});
+// document.getElementById('wakeDepth').addEventListener('change', () => {
+//   updateWakeLayer(); // Aktualisiert die Wake-Regionen
+// });
 
-document.getElementById('sphereRadius').addEventListener('change', () => {
-  updateWakeLayer(); // Aktualisiert die Wake-Regionen
-});
+// document.getElementById('sphereRadius').addEventListener('change', () => {
+//   updateWakeLayer(); // Aktualisiert die Wake-Regionen
+// });
 
 // ======================================================================
 // Formen-Zeichnen und -Bearbeiten im drawlayer
@@ -865,7 +852,8 @@ map.on('singleclick', function (e) {
         hubHeight: parseFloat(document.getElementById('hubHeightDropdown').value),
         rotorRadius: parseFloat(document.getElementById('rotorRadius').textContent),
         tipSpeedRatio: parseFloat(document.getElementById('tipSpeedRatio').textContent),
-        sphereRadius: parseFloat(document.getElementById('sphereRadius').value)
+        sphereRadius: parseFloat(document.getElementById('sphereRadius').value),
+        wakeDepth: parseFloat(document.getElementById('wakeDepth').value),
       };
 
       // Attach parameters to the point feature
@@ -1274,10 +1262,11 @@ function aktualisierePfeil() {
  * Hier verwenden wir feste Maße (z. B. width = 100, height = 50). 
  * Diese Werte kannst Du natürlich anpassen.
  */
-function createWakeRectangle(pointCoord, rotorRadius) {
+function createWakeRectangle(pointFeature, pointCoord, rotorRadius) {
+  const property = pointFeature.getProperties();
 
-  const sphereRadiusValue = parseFloat(document.getElementById('sphereRadius').value) * rotorRadius;
-  const depthValue             = parseFloat(document.getElementById('wakeDepth').value)    * rotorRadius;
+  const sphereRadiusValue = property['sphereRadius'] * rotorRadius;
+  const depthValue             = property['wakeDepth']    * rotorRadius;
 
   const inletdepth = sphereRadiusValue;
   const wakedepth = depthValue;
@@ -1316,7 +1305,7 @@ function updateWakeLayer() {
     // Get the rotorRadius from the feature’s properties
     const rotorRadius = pointFeature.get("rotorRadius");
     // Create the wake rectangle using the turbine’s rotorRadius
-    const wakeRect = createWakeRectangle(coord, rotorRadius);
+    const wakeRect = createWakeRectangle(pointFeature, coord, rotorRadius);
     wakeRect.rotate(squareAngleRadian, wakeRect.rotationPoint);
     const wakeFeature = new Feature({
       geometry: wakeRect
@@ -1396,58 +1385,11 @@ function updateSphereRadiusLayer() {
   console.log(`SphereRadiusLayer aktualisiert: ${pointFeatures.length} Kreise mit Radius ${sphereRadiusValue}m gezeichnet.`);
 }
 
-// Event-Listener für Änderungen am Sphere-Radius-Input
-document.getElementById('sphereRadius').addEventListener('change', () => {
-  updateSphereRadiusLayer();
-  updateWakeLayer(); // Da der Sphere-Radius auch die Wake-Regionen beeinflusst
-});
 
 // ======================================================================
 // Select- und Clear-Interaktionen
 // ======================================================================
 
-/**
- * Initialisiert die Select-Interaktion für Formen
- */
-function einrichtenSelectInteraktion(button) {
-  button.addEventListener('click', () => {
-    toggleEditMode(button);
-  });
-}
-
-let selectInteraction = null;
-
-/**
- * Schaltet den Edit-Modus ein oder aus
- * @param {HTMLElement} button - Der Edit-Button zum Anpassen des Styles
- */
-function toggleEditMode(button) {
-  editModeActive = !editModeActive;
-  
-  if (editModeActive) {
-    // Edit-Modus aktivieren
-    aktiviereSelectInteraktion();
-    button.classList.add('active');
-    button.style.backgroundColor = '#45a049'; // Grün für aktiv
-    console.log('Edit-Modus aktiviert');
-  } else {
-    // Edit-Modus deaktivieren
-    if (selectInteraction) {
-      selectInteraction.getFeatures().clear();
-      map.removeInteraction(selectInteraction);
-      selectInteraction = null;
-    }
-    
-    if (translateInteraction) {
-      map.removeInteraction(translateInteraction);
-      translateInteraction = null;
-    }
-    
-    button.classList.remove('active');
-    button.style.backgroundColor = '#ccc'; // Zurück zum Standard-Grau
-    console.log('Edit-Modus deaktiviert');
-  }
-}
 
 /**
  * Aktiviert die Select-Interaktion für den aktiven Layer
