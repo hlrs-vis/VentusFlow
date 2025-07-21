@@ -108,9 +108,6 @@ html, body {
   background-color: #45a049;
 }
 
-#PanelRight.selected{
-  background-color: #45a049;
-}
 #TurbinenPanel .t-confirm-button {
   /* cursor: not-allowed; */
   margin: 20px auto;
@@ -121,12 +118,13 @@ html, body {
   display: block;
 }
 
-#PanelRight .confirm-button {
+#TurbinenPanel .sa-confirm-button {
   /* cursor: not-allowed; */
-  margin: 20px auto;  
+  margin: 20px auto;
 }
 
-#PanelRight.selected .confirm-button {
+#TurbinenPanel.selected .sa-confirm-button {
+  /* cursor: not-allowed; */
   display: block;
 }
 

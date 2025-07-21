@@ -195,6 +195,7 @@ import { click } from 'ol/events/condition';
 // - Collection: Hilft beim Verwalten von Gruppen von Features.
 import Translate from 'ol/interaction/Translate';
 import Collection from 'ol/Collection';
+import * as olExtent from 'ol/extent';
 import { rotate } from 'ol/coordinate';
 import { parse } from 'ol/expr/expression';
 import CircleStyle from 'ol/style/Circle';
@@ -323,7 +324,7 @@ function updateSelected(currFeature){
   }else if(selected == "simArea"){
     const simAreaFeature = simAreaSource.getFeatures()[0];
     simAreaFeature.setStyle(rectangleStyle);
-    const panel = document.getElementById("PanelRight");
+    const panel = document.getElementById("simAreaParam");
     panel.classList.remove('selected');
   }
 
@@ -336,7 +337,7 @@ function updateSelected(currFeature){
     selected = id;
   }else{
     currFeature.setStyle(selectedStyleSimArea);
-    const panel = document.getElementById("PanelRight");
+    const panel = document.getElementById("simAreaParam");
     panel.classList.add('selected');
     selected = "simArea"
   }
@@ -668,7 +669,34 @@ const turbineSpecs = {
 };
 
 //Parameter-Panel
-document.getElementById('turbineTypeDropdown').addEventListener('change', () => {
+// document.getElementById('turbineTypeDropdown').addEventListener('change', () => {
+//   const turbineType = document.getElementById('turbineTypeDropdown').value;
+//   const specs = turbineSpecs[turbineType];
+//   if (specs) {
+//     document.getElementById('rotorRadius').textContent = specs.rotorRadius;
+//     document.getElementById('tipSpeedRatio').textContent = specs.tipSpeedRatio;
+
+//     // Hubhöhen-Dropdown füllen
+//     const hubHeightDropdown = document.getElementById('hubHeightDropdown');
+//     hubHeightDropdown.innerHTML = '';
+//     specs.hubHeights.forEach(hh => {
+//       const option = document.createElement('option');
+//       option.value = hh;
+//       option.textContent = hh;
+//       hubHeightDropdown.appendChild(option);
+//     });
+//     // Optional: ersten Wert als Standard setzen
+//     hubHeightDropdown.value = specs.hubHeights[0];
+//     // <span id="hubHeight"> entfällt, keine Synchronisierung mehr nötig
+//   }
+// });
+
+
+const panelConfirmButton = document.getElementById("panelConfirmButton")
+
+panelConfirmButton.addEventListener('click', function () {
+  const feature = turbineSource.getFeatureById(selected);
+
   const turbineType = document.getElementById('turbineTypeDropdown').value;
   const specs = turbineSpecs[turbineType];
   if (specs) {
@@ -686,15 +714,7 @@ document.getElementById('turbineTypeDropdown').addEventListener('change', () => 
     });
     // Optional: ersten Wert als Standard setzen
     hubHeightDropdown.value = specs.hubHeights[0];
-    // <span id="hubHeight"> entfällt, keine Synchronisierung mehr nötig
   }
-});
-
-
-const confirmButton = document.getElementById("panelConfirmButton")
-
-confirmButton.addEventListener('click', function () {
-  const feature = turbineSource.getFeatureById(selected);
 
   const updatedParam = {
     turbineType: document.getElementById('turbineTypeDropdown').value,
@@ -708,7 +728,84 @@ confirmButton.addEventListener('click', function () {
 
   feature.setProperties(updatedParam); 
   updateWakeLayer();
+  updateSphereRadiusLayer();
 });
+
+function updateAreaMetric(){
+  console.log('area')
+  const simAreaFeature = currentShape;
+  console.log('this is simArea: ',simAreaFeature);
+  console.log('this is current shape: ',currentShape);
+  if (simAreaFeature){
+    const geom = simAreaFeature.getGeometry();
+    const extent = geom.getExtent();
+    const minX = extent[0];
+    const minY = extent[1];
+    const maxX = extent[2];
+    const maxY = extent[3];
+
+
+    document.getElementById('saWidth').textContent = maxX-minX.toFixed(2);
+    document.getElementById('saHeight').textContent = maxY-minY.toFixed(2);
+
+    document.getElementById('minX').value = minX;
+    document.getElementById('minY').value = minY;
+    document.getElementById('maxX').value = maxX;
+    document.getElementById('maxY').value = maxY;
+
+  }
+}
+
+const confirmButton = document.getElementById("saConfirmButton")
+
+confirmButton.addEventListener('click', function () {
+  const simAreaFeature = simAreaSource.getFeatures()[0];
+  const geom = simAreaFeature.getGeometry();
+  const extent = geom.getExtent();
+  
+  const oldMinX = extent[0];
+  const oldMinY = extent[1];
+  const oldMaxX = extent[2];
+  const oldMaxY = extent[3];
+
+  const newMinX = parseFloat(document.getElementById('minX').value);
+  const newMinY = parseFloat(document.getElementById('minY').value);
+  const newMaxX = parseFloat(document.getElementById('maxX').value);
+  const newMaxY = parseFloat(document.getElementById('maxY').value);
+
+  const coords = geom.getCoordinates()[0]; // outer ring of polygon
+
+  const updatedCoords = coords.map(([x, y]) => {
+    let newX = x;
+    let newY = y;
+
+    const EPS = 0.000001;
+
+    if (Math.abs(x - oldMinX) < EPS) {
+      newX = newMinX;
+    } else if (Math.abs(x - oldMaxX) < EPS) {
+      newX = newMaxX;
+    }
+
+    if (Math.abs(y - oldMinY) < EPS) {
+      newY = newMinY;
+    } else if (Math.abs(y - oldMaxY) < EPS) {
+      newY = newMaxY;
+    }
+
+    return [newX, newY];
+  });
+
+  if (updatedCoords.length > 2 && 
+      (updatedCoords[0][0] !== updatedCoords[updatedCoords.length - 1][0] ||
+       updatedCoords[0][1] !== updatedCoords[updatedCoords.length - 1][1])) {
+    updatedCoords.push(updatedCoords[0]);
+  }
+
+  geom.setCoordinates([updatedCoords]);
+  aktualisierePfeil();
+});
+
 
 
 // Initialisiere Hubhöhen-Dropdown beim Laden
@@ -861,7 +958,8 @@ map.on('singleclick', function (e) {
       // Für Punkte: Füge sie hinzu, ohne currentShape zu überschreiben.
       event.feature.setStyle(null); // Damit der Layer-Stil greift
       // For each wind turbine, it is given an ID to match their according wake region
-      event.feature.setId(uid());
+      const id = uid();
+      event.feature.setId(id);
       event.feature.set("type","turbine");
       
       // Sicherstellen, dass der Punkt im Source ist, bevor wir die Layer aktualisieren
@@ -888,7 +986,7 @@ map.on('singleclick', function (e) {
       aktualisierePfeil();
       hinzufuegenTranslateInteraktion();
       aktualisiereDimensionenFelder();
-
+      updateAreaMetric()
       
     }
   });
@@ -1377,9 +1475,6 @@ function updateSphereRadiusLayer() {
       circleFeature.set("type","circle");
     }
     sphereRadiusSource.addFeature(circleFeature);
-    const wake = wakeSource.getFeatureById(id);
-    wakeToTurbine.set(wake,circleFeature);
-    turbineToWake.set(pointFeature,wake);
   });
   
   console.log(`SphereRadiusLayer aktualisiert: ${pointFeatures.length} Kreise mit Radius ${sphereRadiusValue}m gezeichnet.`);
