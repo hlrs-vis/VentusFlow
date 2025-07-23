@@ -71,6 +71,18 @@
           select.appendChild(option);
         });
 
+        const numberInput = document.getElementById("windDirectionValue");
+
+        numberInput.addEventListener('keydown', (e) => {
+        // Prevent deletion if only one character left
+        const value = numberInput.value;
+        const selection = numberInput.selectionStart === 0 && numberInput.selectionEnd === value.length;
+
+        if ((e.key === 'Backspace' || e.key === 'Delete') && (value.length <= 1 || selection)) {
+          e.preventDefault();
+        }
+      });
+
       </script>
 
       <!--Select Button-->
