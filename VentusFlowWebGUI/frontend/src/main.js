@@ -580,11 +580,13 @@ function einrichtenToolbar() {
   const formenDropdown = document.getElementById('shapesDropdown');
   const clearShapesButton = document.getElementById('clearShapesButton');
   const windSlider = document.getElementById('windDirectionSlider');
+  const windSelect = document.getElementById("windDirectionSelect");
+  const windNumberInput = document.getElementById('windDirectionValue');
   // const selectShapesButton = document.getElementById('selectShapesButton');
   
   einrichtenFormenDropdown(formenDropdown);
   // einrichtenSelectInteraktion(selectShapesButton);
-  einrichtenWindSlider(windSlider);
+  einrichtenWindSlider(windSlider,windNumberInput,windSelect);
   deleteShape(clearShapesButton,document.getElementById('map'));
   einrichtenLoeschenButton(clearShapesButton);
   
@@ -1227,8 +1229,36 @@ function skaliereTiefe(faktor) {
 /**
  * Initialisiert den Windrichtungs-Slider
  */
-function einrichtenWindSlider(slider) {
+function einrichtenWindSlider(slider,numberInput,select) {
   slider.addEventListener('input', (event) => {
+    numberInput.value = slider.value;
+    const radians = parseFloat(event.target.value) * Math.PI / 180;
+    squareAngleRadian = radians;
+    rotiereShape();
+    aktualisierePfeil();
+    aktualisiereWindSlider();
+    slider.value = (squareAngleRadian * 180 / Math.PI).toFixed(2);
+    updateSelectFromAngle(select,parseFloat(slider.value))
+  });
+
+  // When the number input changes, update the slider
+  numberInput.addEventListener('input', (event) => {
+    // Clamp the value between min and max (optional safety)
+    let value = Math.max(0, Math.min(360, numberInput.value));
+    slider.value = value;
+    const radians = parseFloat(event.target.value) * Math.PI / 180;
+    squareAngleRadian = radians;
+    rotiereShape();
+    aktualisierePfeil();
+    aktualisiereWindSlider();
+    slider.value = (squareAngleRadian * 180 / Math.PI).toFixed(2);
+    updateSelectFromAngle(select,parseFloat(slider.value))
+  });
+
+  select.addEventListener('change', (event) => {
+    const angle = parseFloat(select.value);
+    numberInput.value = angle;
+    slider.value = angle;
     const radians = parseFloat(event.target.value) * Math.PI / 180;
     squareAngleRadian = radians;
     rotiereShape();
@@ -1238,6 +1268,15 @@ function einrichtenWindSlider(slider) {
   });
   console.log('Windrichtungs-Slider eingerichtet');
 }
+
+function updateSelectFromAngle(select,angle) {
+  // Find the direction with the closest angle
+  let closest = directions.reduce((prev, curr) => {
+    return Math.abs(curr.angle - angle) < Math.abs(prev.angle - angle) ? curr : prev;
+  });
+  select.value = closest.angle;
+}
+
 
 /**
  * Aktualisiert die Anzeige des Windrichtungs-Sliders

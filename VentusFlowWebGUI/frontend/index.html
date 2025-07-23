@@ -36,8 +36,42 @@
       </select>
 
       <!--Winddirection Slider-->
+      <select name="Wind Direction" id="windDirectionSelect">
+     
+      </select>
       <input id="windDirectionSlider" type="range" min="0" max="360" value="0" step="1" />
-      <span id="windDirectionValue">0°</span>
+      <input type="number" id="windDirectionValue" value="0" step="1">
+      
+      <script>
+      const directions = [
+        { label: "E", angle: 0 },
+        { label: "ENE", angle: 22.5 },
+        { label: "NE", angle: 45 },
+        { label: "NNE", angle: 67.5 },
+        { label: "N", angle: 90 },
+        { label: "NNW", angle: 112.5 },
+        { label: "NW", angle: 135 },
+        { label: "WNW", angle: 157.5 },
+        { label: "W", angle: 180 },
+        { label: "WSW", angle: 202.5 },
+        { label: "SW", angle: 225 },
+        { label: "SSW", angle: 247.5 },
+        { label: "S", angle: 270 },
+        { label: "SSE", angle: 292.5 },
+        { label: "SE", angle: 315 },
+        { label: "ESE", angle: 337.5 }
+      ];
+
+        const select = document.getElementById("windDirectionSelect");
+      
+        directions.forEach(dir => {
+          const option = document.createElement("option");
+          option.value = dir.angle;
+          option.textContent = `${dir.label} (${dir.angle}°)`;
+          select.appendChild(option);
+        });
+
+      </script>
 
       <!--Select Button-->
       <!-- <button id="selectShapesButton" title="Toggle Edit Mode">edit shapes</button> -->
