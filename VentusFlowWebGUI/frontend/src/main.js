@@ -694,9 +694,9 @@ const turbineSpecs = {
 // });
 
 
-const panelConfirmButton = document.getElementById("panelConfirmButton")
+const turbinePanel = document.getElementById("TurbinenPanel");
 
-panelConfirmButton.addEventListener('click', function () {
+turbinePanel.addEventListener('change', function () {
   const feature = turbineSource.getFeatureById(selected);
 
   const turbineType = document.getElementById('turbineTypeDropdown').value;
@@ -758,9 +758,9 @@ function updateAreaMetric(){
   }
 }
 
-const confirmButton = document.getElementById("saConfirmButton")
+const saArea = document.getElementById("saPanel")
 
-confirmButton.addEventListener('click', function () {
+saArea.addEventListener('change', function () {
   const simAreaFeature = simAreaSource.getFeatures()[0];
   const geom = simAreaFeature.getGeometry();
   const extent = geom.getExtent();
