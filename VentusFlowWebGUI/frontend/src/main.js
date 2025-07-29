@@ -918,6 +918,14 @@ function hinzufuegenZeichenInteraktion(formTyp) {
     return;
   }
 
+  map.on('singleclick', function (evt) {
+    const feature = map.forEachFeatureAtPixel(evt.pixel, function (feature) {
+      return feature;
+    });
+    updateSelected(feature)
+  });
+  
+
 map.on('singleclick', function (e) {
   map.forEachFeatureAtPixel(e.pixel, function (f) {
     if(isDeleting){
